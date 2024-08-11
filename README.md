@@ -1,10 +1,10 @@
-# Home Server Control via Home Assistant
+# Home Lab Servere Control via Home Assistant
 
 Nothing to see here yet...
 
 ## Overview
 
-This project is aimed at providing a simple solution to start and stop home servers (NAS, Media, Games, etc.) directly from within Home Assistant using MQTT.
+This project is aimed at providing a simple solution to start and stop home lab servers (NAS, Media, Games, etc.) directly from within Home Assistant using MQTT.
 
 ## Features (Planned)
 - Start/Stop home servers from Home Assistant.
