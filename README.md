@@ -1,29 +1,28 @@
-# Create T3 App
+# Home Server Control via Home Assistant
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Nothing to see here yet...
 
-## What's next? How do I make an app with this?
+## Overview
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+This project is aimed at providing a simple solution to start and stop home servers (NAS, Media, Games, etc.) directly from within Home Assistant using MQTT.
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Features (Planned)
+- Start/Stop home servers from Home Assistant.
+- Control various types of servers, including NAS, Media, and Game servers.
+- Integration with MQTT for seamless communication between Home Assistant and your servers.
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+## Installation
 
-## Learn More
+_Coming soon..._
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## Usage
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+_Coming soon..._
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+## Contributing
 
-## How do I deploy this?
+Feel free to fork this project and submit pull requests. Contributions are welcome!
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+## License
+
+This project is licensed under the MIT License.
