@@ -56,7 +56,6 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
   function updateSettings(area: string, value: string) {
     let s = { ...settings };
     s[area] = value;
-    console.log(area, value, s);
     setSettings(s);
   }
 
