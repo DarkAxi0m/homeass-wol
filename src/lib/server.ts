@@ -9,7 +9,7 @@ export const ServerSchema = z.object({
   isRunning: z.boolean().optional(),
   lastSeen: z.date().optional(),
   lastChecked: z.date().optional(),
-  settings: z.record(z.string())
+  settings: z.record(z.string()),
 });
 
 export type Server = z.infer<typeof ServerSchema>;

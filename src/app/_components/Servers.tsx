@@ -29,18 +29,15 @@ const ServerTable: React.FC<ServerTableProps> = ({
           </tr>
         </thead>
         <tbody>
-        
-   
-  
           {servers.map((server, i) => (
             <tr key={server.id} className="hover:bg-gray-100">
               <td className="py-2 px-4 border-b">{server.state ? "Y" : "N"}</td>
               <td className="py-2 px-4 border-b">{server.name}</td>
               <td className="py-2 px-4 border-b">
                 <small>
-                    {server.startType?server.startType + ' ' :''}
-                    {server.stopType?server.stopType + ' ':''}
-                    {server.checkType?server.checkType:''}
+                  {server.startType ? server.startType + " " : ""}
+                  {server.stopType ? server.stopType + " " : ""}
+                  {server.checkType ? server.checkType : ""}
                 </small>
               </td>
               <td className="py-2 px-4 border-b">

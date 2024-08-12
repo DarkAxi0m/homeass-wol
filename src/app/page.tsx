@@ -46,7 +46,7 @@ export default function Home() {
   };
 
   const handleSave = (updatedServer: Server) => {
-  console.log('updatedServer',updatedServer)
+    console.log("updatedServer", updatedServer);
     updateserver.mutate(updatedServer);
     setEditServer(null);
   };

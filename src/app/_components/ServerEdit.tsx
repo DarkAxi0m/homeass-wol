@@ -17,17 +17,19 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
   const [startType, setStartType] = useState(server?.startType || "");
   const [stopType, setStopType] = useState(server?.stopType || "");
   const [checkType, setCheckType] = useState(server?.checkType || "");
-  const [reqValues, setReqValues] = useState<Record<string, Action>>(geteReqValues());
-  const [settings, setSettings] = useState<Record<string, string>>(server?.settings || {});
+  const [reqValues, setReqValues] =
+    useState<Record<string, Action>>(geteReqValues());
+  const [settings, setSettings] = useState<Record<string, string>>(
+    server?.settings || {},
+  );
 
   const handleSave = () => {
     if (server) {
-      onSave({ ...server, name, startType, stopType, checkType,settings });
+      onSave({ ...server, name, startType, stopType, checkType, settings });
     }
   };
-  
-  
-  function geteReqValues(){
+
+  function geteReqValues() {
     var s = {};
     const StartAction = Actions[startType.toLowerCase()];
     if (StartAction) {
@@ -38,25 +40,23 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
     if (StopAction) {
       s = { ...s, ...StopAction.reqValues };
     }
- 
+
     const CheckAction = Actions[checkType.toLowerCase()];
     if (CheckAction) {
       s = { ...s, ...CheckAction.reqValues };
     }
-   
-   return s;
+
+    return s;
   }
-  
- 
 
   React.useEffect(() => {
-      setReqValues(geteReqValues())
+    setReqValues(geteReqValues());
   }, [startType, stopType, checkType]);
-  
-  function updateSettings(area:string, value:string) {
-   let s = {...settings}
+
+  function updateSettings(area: string, value: string) {
+    let s = { ...settings };
     s[area] = value;
-    console.log(area,value,s)
+    console.log(area, value, s);
     setSettings(s);
   }
 
@@ -129,18 +129,19 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
             </div>{" "}
           </div>
           <div className="p-2">
-           {Object.keys(reqValues).map((s)=>  <div key={s} className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {s} <small>{reqValues[s]}</small>
-              </label>
-              <input
-                type="text"
-                value={settings[s]}
-                onChange={(e) => updateSettings(s, e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>)}
-          
+            {Object.keys(reqValues).map((s) => (
+              <div key={s} className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {s} <small>{reqValues[s]}</small>
+                </label>
+                <input
+                  type="text"
+                  value={settings[s]}
+                  onChange={(e) => updateSettings(s, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+            ))}
           </div>
         </div>
         <div className="flex justify-end">

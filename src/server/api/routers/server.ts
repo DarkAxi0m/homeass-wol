@@ -7,10 +7,8 @@ const servers: Server[] = [
   {
     id: 1,
     name: "Server 1",
-    settings: {host: '127.0.0.1'},
-    startType
-: 
-"wol"
+    settings: { host: "127.0.0.1" },
+    startType: "wol",
   },
 ];
 
