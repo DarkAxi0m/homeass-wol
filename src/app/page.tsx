@@ -41,13 +41,12 @@ export default function Home() {
     let s: Server = {
       id: -1,
       name: "",
-      host: "",
-      type: "simple",
     };
     setEditServer(s);
   };
 
   const handleSave = (updatedServer: Server) => {
+  console.log('updatedServer',updatedServer)
     updateserver.mutate(updatedServer);
     setEditServer(null);
   };

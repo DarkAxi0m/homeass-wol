@@ -22,7 +22,6 @@ const ServerTable: React.FC<ServerTableProps> = ({
           <tr>
             <th className="py-2 px-4 border-b text-left">State</th>
             <th className="py-2 px-4 border-b text-left">Name</th>
-            <th className="py-2 px-4 border-b text-left">Host</th>
             <th className="py-2 px-4 border-b text-left">Type</th>
             <th className="py-2 px-4 border-b text-left">Last Seen</th>
             <th className="py-2 px-4 border-b text-left">Last Checked</th>
@@ -30,12 +29,20 @@ const ServerTable: React.FC<ServerTableProps> = ({
           </tr>
         </thead>
         <tbody>
+        
+   
+  
           {servers.map((server, i) => (
             <tr key={server.id} className="hover:bg-gray-100">
               <td className="py-2 px-4 border-b">{server.state ? "Y" : "N"}</td>
               <td className="py-2 px-4 border-b">{server.name}</td>
-              <td className="py-2 px-4 border-b">{server.host}</td>
-              <td className="py-2 px-4 border-b">{server.type}</td>
+              <td className="py-2 px-4 border-b">
+                <small>
+                    {server.startType?server.startType + ' ' :''}
+                    {server.stopType?server.stopType + ' ':''}
+                    {server.checkType?server.checkType:''}
+                </small>
+              </td>
               <td className="py-2 px-4 border-b">
                 {server.lastSeen
                   ? new Date(server.lastSeen).toLocaleString()

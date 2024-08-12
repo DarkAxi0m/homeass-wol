@@ -4,9 +4,14 @@ import { Server, ServerSchema } from "~/lib/server";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 const servers: Server[] = [
-  { id: 1, name: "Server 1", host: "192.168.1.1", type: "Web" },
-  { id: 2, name: "Server 2", host: "192.168.1.2", type: "Database" },
-  { id: 3, name: "Server 3", host: "192.168.1.3", type: "Cache" },
+  {
+    id: 1,
+    name: "Server 1",
+    settings: {host: '127.0.0.1'},
+    startType
+: 
+"wol"
+  },
 ];
 
 export const serverRouter = createTRPCRouter({
@@ -20,8 +25,14 @@ export const serverRouter = createTRPCRouter({
     const index = servers.findIndex((s) => s.id === input.id);
     if (index === -1) throw new Error("Server not found");
 
-    servers[index] = { ...servers[index], ...input, id: servers[index].id, lastChecked: new Date() };
+    if (!servers[index]) throw new Error("Server not found");
 
+    servers[index] = {
+      ...servers[index],
+      ...input,
+      id: servers[index].id,
+      lastChecked: new Date(),
+    };
 
     return servers[index];
   }),
