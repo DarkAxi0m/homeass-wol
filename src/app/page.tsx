@@ -7,6 +7,7 @@ import { Server } from "~/lib/server";
 
 export default function Home() {
   let servers = api.server.getAll.useQuery();
+  let stop = api.server.stop.useMutation();
   let updateserver = api.server.update.useMutation({
     onSettled: () => {
       servers.refetch();
@@ -23,6 +24,7 @@ export default function Home() {
 
   const handleStartStop = (id: number) => {
     console.log(`Start/Stop server with id: ${id}`);
+    stop.mutate({ id });
   };
 
   const handleEdit = (id: number) => {

@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Server } from "~/lib/server";
+import TimeAgo from "./TimeAgo";
 
 interface ServerTableProps {
   servers: Server[];
@@ -31,7 +32,7 @@ const ServerTable: React.FC<ServerTableProps> = ({
         <tbody>
           {servers.map((server, i) => (
             <tr key={server.id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border-b">{server.state ? "Y" : "N"}</td>
+              <td className="py-2 px-4 border-b"></td>
               <td className="py-2 px-4 border-b">{server.name}</td>
               <td className="py-2 px-4 border-b">
                 <small>
@@ -39,16 +40,21 @@ const ServerTable: React.FC<ServerTableProps> = ({
                   {server.stopType ? server.stopType + " " : ""}
                   {server.checkType ? server.checkType : ""}
                 </small>
+                r
               </td>
               <td className="py-2 px-4 border-b">
-                {server.lastSeen
-                  ? new Date(server.lastSeen).toLocaleString()
-                  : "N/A"}
+                {server.lastSeen ? (
+                  <TimeAgo dateTime={server.lastSeen} />
+                ) : (
+                  "N/A"
+                )}
               </td>
               <td className="py-2 px-4 border-b">
-                {server.lastChecked
-                  ? new Date(server.lastChecked).toLocaleString()
-                  : "N/A"}
+                {server.lastChecked ? (
+                  <TimeAgo dateTime={server.lastChecked} />
+                ) : (
+                  "N/A"
+                )}
               </td>
               <td className="py-2 px-4 border-b">
                 <button
