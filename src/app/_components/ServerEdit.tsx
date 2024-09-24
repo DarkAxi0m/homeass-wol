@@ -1,57 +1,65 @@
 "use client";
+import { Server, Action } from "@prisma/client";
 import React, { useState } from "react";
-import { Actions, ActionsByType, Server } from "~/lib/server";
+import { api } from "~/trpc/react";
 
 interface ServerEditDialogProps {
-  server: Server | null;
+  server: Server;
+  actions: Action[];
   onSave: (server: Server) => void;
   onCancel: () => void;
 }
 
-const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
+type SettingRec = Record<string,string>
+
+const ServerEditDialog: React.FC<ServerEditDialogProps> =  ({
   server,
+  actions,
   onSave,
   onCancel,
 }) => {
+ 
   const [name, setName] = useState(server?.name || "");
-  const [startType, setStartType] = useState(server?.startType || "");
-  const [stopType, setStopType] = useState(server?.stopType || "");
-  const [checkType, setCheckType] = useState(server?.checkType || "");
+  const [startTypeId, setStartTypeId] = useState(server.startTypeId);
+  const [stopTypeId, setStopTypeId] = useState(server.stopTypeId);
+  const [checkTypeId, setCheckTypeId] = useState(server.checkTypeId );
   const [reqValues, setReqValues] =
     useState<Record<string, Action>>(geteReqValues());
-  const [settings, setSettings] = useState<Record<string, string>>(
-    server?.settings || {},
+  const [settings, setSettings] = useState<SettingRec>(
+    JSON.parse( server?.settings || "{}") as SettingRec,
   );
 
   const handleSave = () => {
     if (server) {
-      onSave({ ...server, name, startType, stopType, checkType, settings });
+        console.log('Handle Save', server)
+      onSave({ ...server, name, startTypeId, stopTypeId, checkTypeId, settings:JSON.stringify( settings ) });
     }
   };
 
   function geteReqValues() {
     var s = {};
-    const StartAction = Actions[startType.toLowerCase()];
-    if (StartAction) {
-      s = { ...s, ...StartAction.reqValues };
-    }
 
-    const StopAction = Actions[stopType.toLowerCase()];
-    if (StopAction) {
-      s = { ...s, ...StopAction.reqValues };
-    }
+    if (!actions) return s;
 
-    const CheckAction = Actions[checkType.toLowerCase()];
-    if (CheckAction) {
-      s = { ...s, ...CheckAction.reqValues };
+    const a = actions.find((a)=>a.id == startTypeId)
+    if (a) {
+       s = {...s, ... JSON.parse(a.reqValues)}
     }
-
+     const b  = actions.find((a)=>a.id == stopTypeId)
+    if (b) {
+       s = {...s, ... JSON.parse(b.reqValues)}
+    }
+     const c = actions.find((a)=>a.id == checkTypeId)
+    if (c) {
+       s = {...s, ... JSON.parse(c.reqValues)}
+    }
+ 
     return s;
   }
 
   React.useEffect(() => {
     setReqValues(geteReqValues());
-  }, [startType, stopType, checkType]);
+  }, [startTypeId, stopTypeId, checkTypeId]);
 
   function updateSettings(area: string, value: string) {
     let s = { ...settings };
@@ -84,14 +92,12 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
               </label>
 
               <select
-                defaultValue={startType}
+                defaultValue={startTypeId ?? ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                onChange={(e) => setStartType(e.target.value)}
+                onChange={(e) => setStartTypeId(parseInt( e.target.value))}
               >
-                <option value="">No Action</option>
-                {ActionsByType("start").map((v, i) => (
-                  <option key={i}>{v.name}</option>
-                ))}
+                <option value="0">No Action</option>
+                {actions && actions.filter(a=>a.type=="start").map(a=><option value={a.id.toString()}>{a.name}</option>)}
               </select>
             </div>
             <div className="mb-4">
@@ -100,14 +106,12 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
               </label>
 
               <select
-                defaultValue={stopType}
+                defaultValue={stopTypeId ?? ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                onChange={(e) => setStopType(e.target.value)}
+                onChange={(e) => setStopTypeId(parseInt(e.target.value))}
               >
-                <option value="">No Action</option>
-                {ActionsByType("stop").map((v, i) => (
-                  <option key={i}>{v.name}</option>
-                ))}
+                <option value="0">No Action</option>
+                {actions && actions.filter(a=>a.type=="stop").map(a=><option value={a.id.toString()}>{a.name}</option>)}
               </select>
             </div>
             <div className="mb-4">
@@ -116,14 +120,12 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
               </label>
 
               <select
-                defaultValue={checkType}
+                defaultValue={checkTypeId ?? ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                onChange={(e) => setCheckType(e.target.value)}
+                onChange={(e) => setCheckTypeId(parseInt(e.target.value))}
               >
-                <option value="">No Action</option>
-                {ActionsByType("check").map((v, i) => (
-                  <option key={i}>{v.name}</option>
-                ))}
+                <option value="0">No Action</option>
+                {actions && actions.filter(a=>a.type=="check").map(a=><option value={a.id.toString()}>{a.name}</option>)}
               </select>
             </div>{" "}
           </div>
@@ -131,7 +133,7 @@ const ServerEditDialog: React.FC<ServerEditDialogProps> = ({
             {Object.keys(reqValues).map((s) => (
               <div key={s} className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {s} <small>{reqValues[s]}</small>
+                  {s} <small></small>
                 </label>
                 <input
                   type="text"

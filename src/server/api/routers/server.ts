@@ -1,110 +1,45 @@
+import { ServerModel } from "prisma/zod";
 import { z } from "zod";
-import { Server, ServerSchema } from "~/lib/server";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
-import { readFileSync, writeFileSync } from "fs";
-import * as yaml from "js-yaml";
 import { shutdownServer } from "~/worker/SSH";
 
-let servers: Server[] = [];
-let loaded: boolean = false;
 
-function loadYamlFile(filePath: string): any {
-  try {
-    const fileContents = readFileSync(filePath, "utf8");
-    return yaml.load(fileContents);
-  } catch (e) {
-    console.error("Failed to load YAML file:", e);
-  }
-}
-
-// Function to save YAML data to a file
-function saveYamlFile(filePath: string, data: any): void {
-  try {
-    const yamlContent = yaml.dump(data);
-    writeFileSync(filePath, yamlContent, "utf8");
-  } catch (e) {
-    console.error("Failed to save YAML file:", e);
-  }
-}
-
-export function load() {
-  if (loaded) return servers;
-  let s = loadYamlFile("servers.yaml");
-  if (s) servers = s;
-  loaded = true;
-  return s;
-}
-
-export function save() {
-  saveYamlFile("servers.yaml", servers);
-}
 
 export const serverRouter = createTRPCRouter({
-  checked: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        state: z.boolean(),
-        msg: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const index = servers.findIndex((s) => s.id === input.id);
-      if (index === -1)
-        throw new Error("Server not found, " + index + ", " + input.id);
-
-      if (!servers[index]) throw new Error("Server not found");
-
-      servers[index].lastChecked = new Date();
-      if (input.state) servers[index].lastSeen = new Date();
-
-      save();
-
-      return input;
-    }),
-
-  update: publicProcedure.input(ServerSchema).mutation(async ({ input }) => {
-    if (input.id <= 0) {
-      input.id = servers.length + 1;
-      servers.push(input);
-      save();
-      return input;
+ 
+  update: publicProcedure.input(ServerModel)
+  .mutation(async ({ input, ctx }) => {
+    const { id, ...dataWithoutId } = input;
+    if (id <= 0) {
+        console.log('Saving new server', input)
+       return await ctx.db.server.create({
+       data: dataWithoutId}) 
     }
 
-    const index = servers.findIndex((s) => s.id === input.id);
-    if (index === -1) throw new Error("Server not found");
+     console.log('Saving server', id, dataWithoutId)
 
-    if (!servers[index]) throw new Error("Server not found");
+    return await ctx.db.server.update({
+               data: dataWithoutId,
+               where: {id}
 
-    servers[index] = {
-      ...servers[index],
-      ...input,
-      id: servers[index].id,
-      //     lastChecked: new Date(),
-    };
-
-    save();
-    return servers[index];
+    })
   }),
 
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const index = servers.findIndex((s) => s.id === input.id);
-      if (index === -1) throw new Error("Server not found");
-
-      const deletedServer = servers.splice(index, 1)[0];
-
-      save();
-      return deletedServer;
+  .mutation(async ({ input, ctx }) => {
+  return await ctx.db.server.delete({where:{id:input.id}})  
     }),
 
-  getAll: publicProcedure.query(() => {
-    load();
-    return servers;
+  getAll: publicProcedure.query(({ctx}) => {
+    return ctx.db.server.findMany();
   }),
+
+ actions: publicProcedure.query(({ctx}) => {
+     return ctx.db.action.findMany();
+ }),
 
   stop: publicProcedure
     .input(
@@ -113,7 +48,7 @@ export const serverRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const index = servers.findIndex((s) => s.id === input.id);
+   /*   const index = servers.findIndex((s) => s.id === input.id);
       if (index === -1)
         throw new Error("Server not found, " + index + ", " + input.id);
 
@@ -126,6 +61,6 @@ export const serverRouter = createTRPCRouter({
         ...{ privateKeyPath: "/home/chris/.ssh/id_rsa" },
       });
 
-      return input;
+      return input;*/
     }),
 });

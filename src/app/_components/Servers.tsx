@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import { Server } from "~/lib/server";
 import TimeAgo from "./TimeAgo";
+import { Server } from "@prisma/client";
 
 interface ServerTableProps {
   servers: Server[];
@@ -30,15 +30,15 @@ const ServerTable: React.FC<ServerTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {servers.map((server, i) => (
+          {servers.map((server) => (
             <tr key={server.id} className="hover:bg-gray-100">
               <td className="py-2 px-4 border-b"></td>
               <td className="py-2 px-4 border-b">{server.name}</td>
               <td className="py-2 px-4 border-b">
                 <small>
-                  {server.startType ? server.startType + " " : ""}
-                  {server.stopType ? server.stopType + " " : ""}
-                  {server.checkType ? server.checkType : ""}
+                  {server.startTypeId ? server.startTypeId + " " : ""}
+                  {server.stopTypeId ? server.stopTypeId + " " : ""}
+                  {server.checkTypeId ? server.checkTypeId : ""}
                 </small>
                 r
               </td>
