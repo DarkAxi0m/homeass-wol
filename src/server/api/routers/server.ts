@@ -41,6 +41,32 @@ export const serverRouter = createTRPCRouter({
      return ctx.db.action.findMany();
  }),
 
+ checked: publicProcedure.input(z.object(
+     {
+        id: z.number(),
+        state: z.boolean(),
+        msg: z.string()
+     }
+ )
+ ).mutation(async ({input, ctx})=>{
+console.log(
+
+    
+    '***************',input.id)
+
+    return await ctx.db.server.update(
+    {
+        data: {
+             lastSeen: (input.state? new Date():null),
+             lastChecked: new Date()
+        },
+        where: {id: input.id}
+    }
+
+    )
+
+    }),
+
   stop: publicProcedure
     .input(
       z.object({

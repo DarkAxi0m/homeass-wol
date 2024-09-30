@@ -1,5 +1,4 @@
 import { Server } from "~/lib/server";
-import { load } from "~/server/api/routers/server";
 import * as ping from "ping";
 
 import { CronJob } from "cron";
@@ -20,10 +19,16 @@ async function updateServer(id: number, state: boolean, msg: string) {
   ).json();
 }
 
+async function getServers() {
+    return await (await fetch("http://127.0.0.1:3000/api/trpc/server.getAll")).json();
+
+}
+
 async function main() {
-  let servers = await load();
+  const servers = (await getServers()).result.data.json as Server[]
 
   servers.forEach(async (s: Server) => {
+      s.settings = JSON.parse((<any> s.settings)as string)
     ping.promise.probe(s.settings.host).then(async function (res) {
       console.log(s.id, res.host, res.alive);
       console.log(await updateServer(s.id, res.alive, res.output));

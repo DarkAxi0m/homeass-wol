@@ -21,7 +21,6 @@ const ServerTable: React.FC<ServerTableProps> = ({
       <table className="min-w-full bg-white rounded-lg shadow-sm">
         <thead>
           <tr>
-            <th className="py-2 px-4 border-b text-left">State</th>
             <th className="py-2 px-4 border-b text-left">Name</th>
             <th className="py-2 px-4 border-b text-left">Type</th>
             <th className="py-2 px-4 border-b text-left">Last Seen</th>
@@ -32,7 +31,6 @@ const ServerTable: React.FC<ServerTableProps> = ({
         <tbody>
           {servers.map((server) => (
             <tr key={server.id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border-b"></td>
               <td className="py-2 px-4 border-b">{server.name}</td>
               <td className="py-2 px-4 border-b">
                 <small>
