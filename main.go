@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"mqtt-go-app/homeassistant"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"
 )
@@ -42,7 +44,15 @@ type BasicServer struct {
 	TopicPowerState  string
 	TopicPowerConfig string
 
+	TopicLastSeenState  string
+	TopicLastSeenConfig string
+
 	Host string
+}
+
+// Need to learn more..., this seem "wrong"
+func StringPtr(s string) *string {
+	return &s
 }
 
 func (s *BasicServer) Discovery(client mqtt.Client) {
@@ -64,12 +74,18 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 		Model:        "BasicServer",
 	}
 
-	runningStr := "running"
 	send(s.TopicPowerConfig, DeviceConfig{
 		Name:        "State",
-		DeviceClass: &runningStr,
+		DeviceClass: StringPtr(string(homeassistant.BinarySensorClassRunning)),
 		StateTopic:  &s.TopicPowerState,
 		UniqueID:    s.UniqueID + "_power",
+		Device:      deviceInfo,
+	})
+	send(s.TopicLastSeenConfig, DeviceConfig{
+		Name:        "Last Seen",
+		DeviceClass: StringPtr(string(homeassistant.SensorClassTimestamp)),
+		StateTopic:  &s.TopicLastSeenState,
+		UniqueID:    s.UniqueID + "_lastseen",
 		Device:      deviceInfo,
 	})
 
@@ -119,20 +135,26 @@ func (s *BasicServer) Check(client mqtt.Client) {
 	log.Printf("State %s: %s\n", s.Host, stateStr)
 
 	client.Publish(s.TopicPowerState, 0, false, stateStr)
+
+	if state {
+		client.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
+	}
 }
 
 func NewBasicServer(uuid string, name string, host string) *BasicServer {
 	prefix := "homeassistant"
 	s := &BasicServer{
-		Name:              name,
-		Host:              host,
-		UniqueID:          uuid,
-		TopicPowerState:   fmt.Sprintf("%s/binary_sensor/%s/%s/state", prefix, uuid, "power"),
-		TopicPowerConfig:  fmt.Sprintf("%s/binary_sensor/%s/%s/config", prefix, uuid, "power"),
-		TopicStopConfig:   fmt.Sprintf("%s/button/%s/%s/config", prefix, uuid, "stop"),
-		TopicStopCommand:  fmt.Sprintf("%s/button/%s/%s/command", prefix, uuid, "stop"),
-		TopicStartConfig:  fmt.Sprintf("%s/button/%s/%s/config", prefix, uuid, "start"),
-		TopicStartCommand: fmt.Sprintf("%s/button/%s/%s/command", prefix, uuid, "start"),
+		Name:                name,
+		Host:                host,
+		UniqueID:            uuid,
+		TopicPowerState:     fmt.Sprintf("%s/binary_sensor/%s/%s/state", prefix, uuid, "power"),
+		TopicPowerConfig:    fmt.Sprintf("%s/binary_sensor/%s/%s/config", prefix, uuid, "power"),
+		TopicLastSeenState:  fmt.Sprintf("%s/sensor/%s/%s/state", prefix, uuid, "lastseen"),
+		TopicLastSeenConfig: fmt.Sprintf("%s/sensor/%s/%s/config", prefix, uuid, "lastseen"),
+		TopicStopConfig:     fmt.Sprintf("%s/button/%s/%s/config", prefix, uuid, "stop"),
+		TopicStopCommand:    fmt.Sprintf("%s/button/%s/%s/command", prefix, uuid, "stop"),
+		TopicStartConfig:    fmt.Sprintf("%s/button/%s/%s/config", prefix, uuid, "start"),
+		TopicStartCommand:   fmt.Sprintf("%s/button/%s/%s/command", prefix, uuid, "start"),
 	}
 
 	return s
@@ -160,7 +182,6 @@ func main() {
 
 	s := NewBasicServer("ccf337ed-a7b9-4b26-afa5-51fac9a56ccb", "TrueNas Server", "10.1.1.20")
 	s.Discovery(client)
-	s.Check(client)
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
