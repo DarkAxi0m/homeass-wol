@@ -15,6 +15,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	ProductName = "HomeAss-Wol"
+)
+
 type DeviceConfig struct {
 	Name         string  `json:"name"`
 	DeviceClass  *string `json:"device_class,omitempty"`
@@ -33,6 +37,7 @@ type Device struct {
 
 type BasicServer struct {
 	Name     string
+	Model    string
 	UniqueID string
 
 	TopicStopConfig  string
@@ -47,8 +52,16 @@ type BasicServer struct {
 	TopicLastSeenState  string
 	TopicLastSeenConfig string
 
-	Host string
+	HealthCheck ServerHealthCheck
+	Start       ServerStart
+	Stop        ServerStop
 }
+
+type (
+	ServerHealthCheck func(server *BasicServer) bool
+	ServerStop        func(server *BasicServer) bool
+	ServerStart       func(server *BasicServer) bool
+)
 
 // Need to learn more..., this seem "wrong"
 func StringPtr(s string) *string {
@@ -70,8 +83,8 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 	deviceInfo := Device{
 		Identifiers:  []string{s.UniqueID},
 		Name:         s.Name,
-		Manufacturer: "SiRMonkeys",
-		Model:        "BasicServer",
+		Manufacturer: ProductName,
+		Model:        s.Model,
 	}
 
 	send(s.TopicPowerConfig, DeviceConfig{
@@ -97,7 +110,10 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 	})
 	client.Subscribe(s.TopicStopCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MSG: Stop Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		s.Stop(client)
+		client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
+		if s.Stop != nil {
+			s.Stop(s)
+		}
 	})
 
 	send(s.TopicStartConfig, DeviceConfig{
@@ -108,45 +124,34 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 	})
 	client.Subscribe(s.TopicStartCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MSG: Start Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		s.Start(client)
+		client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
+		if s.Start != nil {
+			s.Start(s)
+		}
 	})
 }
 
-func (s *BasicServer) Stop(client mqtt.Client) {
-	client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
-	PowerIpmi("10.1.1.239", "ADMIN", "ADMIN", "OFF")
-}
-
-func (s *BasicServer) Start(client mqtt.Client) {
-	client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
-	PowerIpmi("10.1.1.239", "ADMIN", "ADMIN", "ON")
-}
-
 func (s *BasicServer) Check(client mqtt.Client) {
-	log.Printf("Checking %s\n", s.Host)
-
-	state := IsServerUpHTTP("http://"+s.Host, 30*time.Second)
-
+	state := false
+	if s.HealthCheck != nil {
+		state = s.HealthCheck(s)
+	}
 	stateStr := "OFF"
 	if state {
 		stateStr = "ON"
 	}
-
-	log.Printf("State %s: %s\n", s.Host, stateStr)
-
 	client.Publish(s.TopicPowerState, 0, false, stateStr)
-
 	if state {
 		client.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
 	}
 }
 
-func NewBasicServer(uuid string, name string, host string) *BasicServer {
+func NewBasicServer(uuid string, name string) *BasicServer {
 	prefix := "homeassistant"
 	s := &BasicServer{
 		Name:                name,
-		Host:                host,
 		UniqueID:            uuid,
+		Model:               "BasicServer",
 		TopicPowerState:     fmt.Sprintf("%s/binary_sensor/%s/%s/state", prefix, uuid, "power"),
 		TopicPowerConfig:    fmt.Sprintf("%s/binary_sensor/%s/%s/config", prefix, uuid, "power"),
 		TopicLastSeenState:  fmt.Sprintf("%s/sensor/%s/%s/state", prefix, uuid, "lastseen"),
@@ -166,6 +171,8 @@ func main() {
 		log.Printf("No .env file found, relying on environment variables")
 	}
 
+	cfg := LoadConfig("servers.yaml")
+
 	opts := mqtt.NewClientOptions().
 		AddBroker(os.Getenv("MQTT_BROKER")).
 		SetClientID(os.Getenv("MQTT_CLIENT_ID")).
@@ -180,15 +187,59 @@ func main() {
 
 	log.Printf("Connected to MQTT broker at %s\n\n", os.Getenv("MQTT_BROKER"))
 
-	s := NewBasicServer("ccf337ed-a7b9-4b26-afa5-51fac9a56ccb", "TrueNas Server", "10.1.1.20")
-	s.Discovery(client)
+	for _, servercfg := range cfg.Servers {
+		s := NewBasicServer(servercfg.UUID, servercfg.Name)
+		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
+			switch t := servercfg.Check.Type; t {
+			case "ping":
+				fmt.Println("Ping todo")
+				return false
+			case "http":
+				return IsServerUpHTTP(servercfg.Check.Params[0], 29*time.Second)
 
-	ticker := time.NewTicker(30 * time.Second)
+			default:
+				fmt.Printf("Unknown Check: %s.\n", t)
+			}
+			return false
+		})
+
+		s.Start = ServerStart(func(server *BasicServer) bool {
+			switch t := servercfg.Start.Type; t {
+			case "wol":
+				fmt.Println("WOL todo")
+			case "ipmi":
+				params := servercfg.Start.Params
+				return PowerIpmi(params[0], params[1], params[2], "ON")
+
+			default:
+				fmt.Printf("Unknown start: %s.\n", t)
+			}
+			return false
+		})
+
+		s.Stop = ServerStop(func(server *BasicServer) bool {
+			switch t := servercfg.Stop.Type; t {
+			case "ssh":
+				fmt.Println("SSH todo")
+			case "ipmi":
+				params := servercfg.Stop.Params
+				return PowerIpmi(params[0], params[1], params[2], "OFF")
+
+			default:
+				fmt.Printf("Unknown Stop: %s.\n", t)
+			}
+			return false
+		})
+
+		s.Discovery(client)
+
+	}
+	/*ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
 		s.Check(client)
-	}
+	}*/
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)

@@ -21,7 +21,7 @@ func IsServerUpHTTP(url string, timeout time.Duration) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func PowerIpmi(host string, username string, password string, state string) {
+func PowerIpmi(host string, username string, password string, state string) bool {
 	port := 623
 	client, err := ipmi.NewClient(host, port, username, password)
 	if err != nil {
@@ -42,5 +42,7 @@ func PowerIpmi(host string, username string, password string, state string) {
 
 	if _, err := client.ChassisControl(ctx, cont); err != nil {
 		panic(err)
+		return false
 	}
+	return true
 }

@@ -1,0 +1,36 @@
+servers:
+  - uuid: "796ac693-59b5-42d5-9918-b098ce2dd2d5"
+    name: "TrueNas"
+    check:
+      type: "http"
+      params:
+        - "http://10.1.1.20"
+    start:
+      type: "ipmi"
+      params:
+        - "0.1.1.239"
+        - "ADMIN"
+        - "ADMIN"
+    stop:
+      type: "ipmi"
+      params:
+        - "0.1.1.239"
+        - "ADMIN"
+        - "ADMIN"
+
+  - uuid: "e03b80fa-a38e-49ff-a7d9-3ed5bcb8a181"
+    name: "Games Server"
+    check:
+      type: "Ping"
+      params:
+        - "10.1.1.31"
+    start:
+      type: "wol"
+      params:
+        - "b8:ca:3a:88:2a:9c"
+    stop:
+      type: "ssh"
+      params:
+        - "10.1.1.31"
+        - "shutdown now"
+
