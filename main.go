@@ -178,6 +178,8 @@ func main() {
 		SetClientID(os.Getenv("MQTT_CLIENT_ID")).
 		SetUsername(os.Getenv("MQTT_USERNAME")).
 		SetPassword(os.Getenv("MQTT_PASSWORD")).
+		SetAutoReconnect(true).
+		SetMaxReconnectInterval(30 * time.Second).
 		SetDefaultPublishHandler(messageHandler)
 
 	client := mqtt.NewClient(opts)
@@ -187,13 +189,14 @@ func main() {
 
 	log.Printf("Connected to MQTT broker at %s\n\n", os.Getenv("MQTT_BROKER"))
 
+	var servers []*BasicServer
 	for _, servercfg := range cfg.Servers {
 		s := NewBasicServer(servercfg.UUID, servercfg.Name)
 		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
 			switch t := servercfg.Check.Type; t {
 			case "ping":
-				fmt.Println("Ping todo")
-				return false
+
+				return IsServerUpPing(servercfg.Check.Params[0], 29*time.Second)
 			case "http":
 				return IsServerUpHTTP(servercfg.Check.Params[0], 29*time.Second)
 
@@ -232,14 +235,16 @@ func main() {
 		})
 
 		s.Discovery(client)
-
+		servers = append(servers, s)
 	}
-	/*ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		s.Check(client)
-	}*/
+		for _, s := range servers {
+			s.Check(client)
+		}
+	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
