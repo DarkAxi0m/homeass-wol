@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    environment: Build
+    environment: foobar
     runs-on: ubuntu-latest
     steps:
       - name: Login to Docker Hub
@@ -20,6 +20,6 @@ jobs:
       - id: set_tag
         run: echo "image_tag=$(date +%s)" >> $GITHUB_OUTPUT
       - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag  docker.io/darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
+        run: docker build . --tag darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
       - name: Push Docker image
-        run: docker push  docker.io/darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
+        run: docker push  darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
