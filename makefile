@@ -19,4 +19,4 @@ clean:
 
 
 docker-build:
-	docker build -t darkaxi0m/homeass-wol .
+	docker build -t homeass-wol .

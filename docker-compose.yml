@@ -1,0 +1,11 @@
+services:
+  homeasswol:
+    image: darkaxi0m/homeass-wol
+    volumes:
+      - ./servers.yaml:/app/servers.yaml:ro
+    ports:
+      - "8080:8080"
+    environment:
+      MQTT_BROKER: tcp://10.1.1.36:1883
+      CONFIG_FILE: servers.yaml
+
