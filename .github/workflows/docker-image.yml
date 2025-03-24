@@ -17,10 +17,8 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - id: set_tag
-        run: echo "image_tag=$(date +%s)" >> $GITHUB_OUTPUT
       - name: Build the Docker image
-        run: docker build . --tag darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
+        run: docker build . --tag darkaxi0m/homeass-wol:main
       - name: Push Docker image
-        run: docker push darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
+        run: docker push darkaxi0m/homeass-wol:main
 
