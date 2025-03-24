@@ -7,14 +7,13 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag darkaxi0m/homeass-wol:$(date +%s)
-    - name: Push Docker image
-      run: docker push darkaxi0m/homeass-wol:$(date +%s)
+      - uses: actions/checkout@v4
+      - id: set_tag
+        run: echo "image_tag=$(date +%s)" >> $GITHUB_OUTPUT
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
+      - name: Push Docker image
+        run: docker push darkaxi0m/homeass-wol:${{ steps.set_tag.outputs.image_tag }}
