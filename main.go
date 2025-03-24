@@ -12,7 +12,6 @@ import (
 	"mqtt-go-app/homeassistant"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -166,18 +165,15 @@ func NewBasicServer(uuid string, name string) *BasicServer {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Printf("No .env file found, relying on environment variables")
-	}
+	cfg := loadEnv()
 
-	cfg := LoadConfig("servers.yaml")
+	serverscfg := LoadServers(cfg.CONFIG_FILE)
 
 	opts := mqtt.NewClientOptions().
-		AddBroker(os.Getenv("MQTT_BROKER")).
-		SetClientID(os.Getenv("MQTT_CLIENT_ID")).
-		SetUsername(os.Getenv("MQTT_USERNAME")).
-		SetPassword(os.Getenv("MQTT_PASSWORD")).
+		AddBroker(cfg.MQTT_BROKER).
+		SetClientID(cfg.MQTT_CLIENT_ID).
+		SetUsername(cfg.MQTT_USERNAME).
+		SetPassword(cfg.MQTT_PASSWORD).
 		SetAutoReconnect(true).
 		SetMaxReconnectInterval(30 * time.Second).
 		SetDefaultPublishHandler(messageHandler)
@@ -187,10 +183,10 @@ func main() {
 		log.Fatalf("MQTT connection failed: %v", token.Error())
 	}
 
-	log.Printf("Connected to MQTT broker at %s\n\n", os.Getenv("MQTT_BROKER"))
+	log.Printf("Connected to MQTT broker at %s\n\n", cfg.MQTT_BROKER)
 
 	var servers []*BasicServer
-	for _, servercfg := range cfg.Servers {
+	for _, servercfg := range serverscfg.Servers {
 		s := NewBasicServer(servercfg.UUID, servercfg.Name)
 		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
 			switch t := servercfg.Check.Type; t {
