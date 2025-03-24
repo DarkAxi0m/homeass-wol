@@ -15,7 +15,6 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: actions/checkout@v4
       - id: set_tag
         run: echo "image_tag=$(date +%s)" >> $GITHUB_OUTPUT
       - name: Build the Docker image
