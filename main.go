@@ -214,7 +214,7 @@ func main() {
 			switch t := servercfg.Start.Type; t {
 			case "wol":
 
-				mac := "AA:BB:CC:DD:EE:FF"
+				mac := servercfg.Start.Params[0]
 				if err := SendMagicPacket(mac); err != nil {
 					fmt.Println("Error:", err)
 				} else {
