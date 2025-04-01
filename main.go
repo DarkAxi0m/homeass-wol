@@ -216,9 +216,9 @@ func main() {
 
 				mac := servercfg.Start.Params[0]
 				if err := SendMagicPacket(mac); err != nil {
-					fmt.Println("Error:", err)
+					fmt.Println("Error:", err, mac)
 				} else {
-					fmt.Println("Magic packet sent!")
+					fmt.Println("Magic packet sent!", mac)
 				}
 			case "ipmi":
 				params := servercfg.Start.Params
