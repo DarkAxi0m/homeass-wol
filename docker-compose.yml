@@ -1,6 +1,6 @@
 services:
   homeasswol:
-    image: darkaxi0m/homeass-wol
+    image: darkaxi0m/homeass-wol:main
     volumes:
       - ./servers.yaml:/app/servers.yaml:ro
     ports:

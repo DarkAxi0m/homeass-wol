@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/bougou/go-ipmi"
@@ -20,6 +25,18 @@ func IsServerUpHTTP(url string, timeout time.Duration) bool {
 	defer resp.Body.Close()
 	// Optionally check status code if expected
 	return resp.StatusCode == http.StatusOK
+}
+
+func IsServerUpPingCli(host string, timeout time.Duration) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "ping", "-c", "1", host)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("ping execution error: %s", strings.TrimSpace(string(output)))
+	}
+	return true, nil
 }
 
 func IsServerUpPing(host string, timeout time.Duration) bool {
@@ -66,7 +83,26 @@ func PowerIpmi(host string, username string, password string, state string) bool
 
 	if _, err := client.ChassisControl(ctx, cont); err != nil {
 		panic(err)
-		return false
 	}
 	return true
+}
+
+func SendMagicPacket(macAddr string) error {
+	hw, err := net.ParseMAC(macAddr)
+	if err != nil {
+		return err
+	}
+
+	packet := bytes.Repeat([]byte{0xFF}, 6)
+	packet = append(packet, bytes.Repeat(hw, 16)...)
+
+	broadcastAddr := net.UDPAddr{IP: net.IPv4bcast, Port: 9}
+	conn, err := net.DialUDP("udp", nil, &broadcastAddr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	_, err = conn.Write(packet)
+	return err
 }

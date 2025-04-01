@@ -190,6 +190,14 @@ func main() {
 		s := NewBasicServer(servercfg.UUID, servercfg.Name)
 		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
 			switch t := servercfg.Check.Type; t {
+			case "pingcli":
+
+				res, error := IsServerUpPingCli(servercfg.Check.Params[0], 29*time.Second)
+				if error != nil {
+					log.Print("Ping Error", error)
+					return false
+				}
+				return res
 			case "ping":
 
 				return IsServerUpPing(servercfg.Check.Params[0], 29*time.Second)
@@ -205,7 +213,13 @@ func main() {
 		s.Start = ServerStart(func(server *BasicServer) bool {
 			switch t := servercfg.Start.Type; t {
 			case "wol":
-				fmt.Println("WOL todo")
+
+				mac := "AA:BB:CC:DD:EE:FF"
+				if err := SendMagicPacket(mac); err != nil {
+					fmt.Println("Error:", err)
+				} else {
+					fmt.Println("Magic packet sent!")
+				}
 			case "ipmi":
 				params := servercfg.Start.Params
 				return PowerIpmi(params[0], params[1], params[2], "ON")
@@ -219,7 +233,13 @@ func main() {
 		s.Stop = ServerStop(func(server *BasicServer) bool {
 			switch t := servercfg.Stop.Type; t {
 			case "ssh":
-				fmt.Println("SSH todo")
+				params := servercfg.Stop.Params
+				error := RunSSHCommand(params[0], params[1])
+				if error != nil {
+					fmt.Println("SSH Run error", error)
+					return false
+				}
+				return true
 			case "ipmi":
 				params := servercfg.Stop.Params
 				return PowerIpmi(params[0], params[1], params[2], "OFF")
