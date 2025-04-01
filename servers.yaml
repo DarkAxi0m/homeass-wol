@@ -8,13 +8,13 @@ servers:
     start:
       type: "ipmi"
       params:
-        - "0.1.1.239"
+        - "10.1.1.239"
         - "ADMIN"
         - "ADMIN"
     stop:
       type: "ipmi"
       params:
-        - "0.1.1.239"
+        - "10.1.1.239"
         - "ADMIN"
         - "ADMIN"
 
