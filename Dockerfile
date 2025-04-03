@@ -7,16 +7,24 @@ ENV CGO_ENABLED=0
 RUN make build
 
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+
+# Install ca-certificates, Lua 5.4, ping (iputils), and wakeonlan (via busybox-extras)
+RUN apk --no-cache add \
+    ca-certificates \
+    lua5.4 lua5.4-libs lua5.4-socket \
+    iputils \
+    busybox-extras \
+ && ln -s /usr/bin/lua5.4 /usr/bin/lua
+
 WORKDIR /app
 COPY --from=builder /app/bin/homeass-wol .
+
 ENV MQTT_BROKER=
 ENV MQTT_CLIENT_ID=homeass-wol-client
 ENV MQTT_USERNAME=
 ENV MQTT_PASSWORD=
 ENV CONFIG_FILE=servers.yaml
+
 EXPOSE 8080
 CMD ["./homeass-wol"]
 
-
-	

@@ -1,3 +1,5 @@
+github.com/Shopify/go-lua v0.0.0-20240527182111-9ab1540f3f5f h1:XZtTrbBgkw5jgNeaulUVleb/IqTOKgR8x0+uTMzmOjs=
+github.com/Shopify/go-lua v0.0.0-20240527182111-9ab1540f3f5f/go.mod h1:M4CxjVc/1Nwka5atBv7G/sb7Ac2BDe3+FxbiT9iVNIQ=
 github.com/bougou/go-ipmi v0.7.2 h1:Ey7L4WmKFgj0m0Q3WVx/pC63AvcTfKIUzOgEWlJ8qsM=
 github.com/bougou/go-ipmi v0.7.2/go.mod h1:h3JPPoIK/caMQQJiW0BUtqYPcV8zkLobq1hnKwITlmk=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

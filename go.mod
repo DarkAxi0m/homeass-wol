@@ -3,6 +3,7 @@ module mqtt-go-app
 go 1.24.0
 
 require (
+	github.com/Shopify/go-lua v0.0.0-20240527182111-9ab1540f3f5f // indirect
 	github.com/bougou/go-ipmi v0.7.2 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.5.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect

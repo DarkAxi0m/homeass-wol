@@ -189,28 +189,20 @@ func main() {
 	for _, servercfg := range serverscfg.Servers {
 		s := NewBasicServer(servercfg.UUID, servercfg.Name)
 		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
-			switch t := servercfg.Check.Type; t {
-			case "pingcli":
-
-				res, error := IsServerUpPingCli(servercfg.Check.Params[0], 29*time.Second)
-				if error != nil {
-					log.Print("Ping Error", error)
-					return false
-				}
-				return res
-			case "ping":
-
-				return IsServerUpPing(servercfg.Check.Params[0], 29*time.Second)
-			case "http":
-				return IsServerUpHTTP(servercfg.Check.Params[0], 29*time.Second)
-
-			default:
-				fmt.Printf("Unknown Check: %s.\n", t)
+			if result, found := RunLuaScript(servercfg.Check.Type, servercfg.Check.Params); found {
+				log.Printf("Check %s, (%s): %s", servercfg.Name, servercfg.Check, result)
+				return result == "success"
 			}
+			fmt.Printf("Unknown Check: %s.\n", servercfg.Check.Type)
 			return false
 		})
 
 		s.Start = ServerStart(func(server *BasicServer) bool {
+			if result, found := RunLuaScript(servercfg.Start.Type, servercfg.Start.Params); found {
+				log.Printf("Server Start: %s, (%s): %s", servercfg.Name, servercfg.Start, result)
+				return result == "success"
+			}
+
 			switch t := servercfg.Start.Type; t {
 			case "wol":
 

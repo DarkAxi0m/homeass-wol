@@ -21,7 +21,7 @@ servers:
   - uuid: "e03b80fa-a38e-49ff-a7d9-3ed5bcb8a181"
     name: "Games Server"
     check:
-      type: "pingcli"
+      type: "ping"
       params:
         - "10.1.1.31"
     start:
@@ -37,7 +37,7 @@ servers:
   - uuid: "3ffc63ac-3b8d-4bac-8146-c88041706974"
     name: "Morrison's PC"
     check:
-      type: "pingcli"
+      type: "ping"
       params:
         - "10.1.1.90"
     start:
@@ -53,7 +53,7 @@ servers:
   - uuid: "afcc05eb-9b62-45cb-88c6-62b81d452fd3"
     name: "Isaacs's PC"
     check:
-      type: "pingcli"
+      type: "ping"
       params:
         - "10.1.1.92"
     start:
