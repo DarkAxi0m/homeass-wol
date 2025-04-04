@@ -18,6 +18,7 @@ RUN apk --no-cache add \
 
 WORKDIR /app
 COPY --from=builder /app/bin/homeass-wol .
+COPY ./scripts /app/scripts
 
 ENV MQTT_BROKER=
 ENV MQTT_CLIENT_ID=homeass-wol-client
