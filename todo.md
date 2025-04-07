@@ -12,12 +12,13 @@
 - [ ] lwt for config messages
 
 ## Deployment and Releases
-- [ ] Dockerfile
+- [x] Dockerfile
 - [ ] Readme
-- [ ] docker hub
+- [x] docker hub
 - [ ] docker compose example
 
 ## Ideas
 - [ ] Network scan, populate config
 - [ ] web interface for config
+- [ ] remove last seen var
 
