@@ -139,6 +139,7 @@ func (s *BasicServer) Check(client mqtt.Client) {
 	if state {
 		stateStr = "ON"
 	}
+    log.Printf("Check for %s: %s", s.Name, stateStr)
 	client.Publish(s.TopicPowerState, 0, false, stateStr)
 	if state {
 		client.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
