@@ -185,22 +185,28 @@ func main() {
 
 	log.Printf("Connected to MQTT broker at %s\n\n", cfg.MQTT_BROKER)
 
+	luaCheck := func(name string, action Action) (bool, bool) {
+		if result, found := RunLuaScript(action.Type, action.Params); found {
+			log.Printf("[LUA]%s %s: %s", action.Type, name, result)
+			return result == "success", true
+		}
+		return false, false
+	}
+
 	var servers []*BasicServer
 	for _, servercfg := range serverscfg.Servers {
 		s := NewBasicServer(servercfg.UUID, servercfg.Name)
 		s.HealthCheck = ServerHealthCheck(func(server *BasicServer) bool {
-			if result, found := RunLuaScript(servercfg.Check.Type, servercfg.Check.Params); found {
-				log.Printf("Check %s, (%s): %s", servercfg.Name, servercfg.Check, result)
-				return result == "success"
+			if result, found := luaCheck(servercfg.Name, servercfg.Check); found {
+				return result
 			}
 			fmt.Printf("Unknown Check: %s.\n", servercfg.Check.Type)
 			return false
 		})
 
 		s.Start = ServerStart(func(server *BasicServer) bool {
-			if result, found := RunLuaScript(servercfg.Start.Type, servercfg.Start.Params); found {
-				log.Printf("Server Start: %s, (%s): %s", servercfg.Name, servercfg.Start, result)
-				return result == "success"
+			if result, found := luaCheck(servercfg.Name, servercfg.Start); found {
+				return result
 			}
 
 			switch t := servercfg.Start.Type; t {
@@ -223,6 +229,10 @@ func main() {
 		})
 
 		s.Stop = ServerStop(func(server *BasicServer) bool {
+			if result, found := luaCheck(servercfg.Name, servercfg.Stop); found {
+				return result
+			}
+
 			switch t := servercfg.Stop.Type; t {
 			case "ssh":
 				params := servercfg.Stop.Params
