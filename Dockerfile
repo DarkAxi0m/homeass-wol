@@ -9,12 +9,13 @@ RUN make build
 FROM alpine:latest
 
 # Install ca-certificates, Lua 5.4, ping (iputils), and wakeonlan (via busybox-extras)
-RUN apk --no-cache add \
+RUN apk --no-cache --virtual add \
     ca-certificates \
     lua5.4 lua5.4-libs lua5.4-socket \
     iputils \
     busybox-extras \
- && ln -s /usr/bin/lua5.4 /usr/bin/lua
+ && ln -s /usr/bin/lua5.4 /usr/bin/lua \
+    && rm -rf /var/cache/apk/* /usr/share/doc /usr/share/man /usr/share/locale
 
 WORKDIR /app
 COPY --from=builder /app/bin/homeass-wol .

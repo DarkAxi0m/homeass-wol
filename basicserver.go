@@ -29,7 +29,8 @@ type BasicServer struct {
 	TopicLastSeenState  string
 	TopicLastSeenConfig string
 
-	cfg Server
+	lastState string
+	cfg       Server
 }
 
 type DeviceConfig struct {
@@ -53,14 +54,31 @@ func StringPtr(s string) *string {
 	return &s
 }
 
-func (s *BasicServer) Discovery(client mqtt.Client) {
+func (s *BasicServer) SetState(to bool) {
+	stateStr := "OFF"
+	if to {
+		stateStr = "ON"
+	}
+
+	if stateStr != s.lastState {
+		s.lastState = stateStr
+	}
+
+	log.Printf("Check for %s: %s \n", s.Name, stateStr)
+	mqttClient.Publish(s.TopicPowerState, 0, false, stateStr)
+	if to {
+		mqttClient.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
+	}
+}
+
+func (s *BasicServer) Discovery() {
 	send := func(topic string, cfg DeviceConfig) {
 		jsonPayload, err := json.Marshal(cfg)
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %v", err)
 		}
 
-		client.Publish(topic, 0, true, jsonPayload)
+		mqttClient.Publish(topic, 0, true, jsonPayload)
 
 		log.Println(topic)
 	}
@@ -93,9 +111,9 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 		UniqueID:     s.UniqueID + "_stop",
 		Device:       deviceInfo,
 	})
-	client.Subscribe(s.TopicStopCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
+	mqttClient.Subscribe(s.TopicStopCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MSG: Stop Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
+		mqttClient.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
 		s.Stop()
 	})
 
@@ -105,9 +123,9 @@ func (s *BasicServer) Discovery(client mqtt.Client) {
 		UniqueID:     s.UniqueID + "_start",
 		Device:       deviceInfo,
 	})
-	client.Subscribe(s.TopicStartCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
+	mqttClient.Subscribe(s.TopicStartCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MSG: Start Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		client.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
+		mqttClient.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
 		s.Start()
 	})
 }
@@ -120,19 +138,9 @@ func luaCheck(name string, action Action) (bool, bool) {
 	return false, false
 }
 
-func (s *BasicServer) Check(client mqtt.Client) {
+func (s *BasicServer) Check() {
 	if result, found := luaCheck(s.Name, s.cfg.Check); found {
-
-		stateStr := "OFF"
-		if result {
-			stateStr = "ON"
-		}
-		log.Printf("Check for %s: %s \n", s.Name, stateStr)
-		client.Publish(s.TopicPowerState, 0, false, stateStr)
-		if result {
-			client.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
-		}
-
+		s.SetState(result)
 	} else {
 		fmt.Printf("Unknown Check: %s, %s.\n", s.Name, s.cfg.Check.Type)
 	}
@@ -203,6 +211,8 @@ func NewBasicServer(servercfg Server) *BasicServer {
 		TopicStartCommand:   fmt.Sprintf("%s/button/%s/%s/command", prefix, uuid, "start"),
 
 		cfg: servercfg,
+
+		lastState: "Off",
 	}
 
 	return s

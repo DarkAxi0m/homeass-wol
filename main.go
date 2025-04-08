@@ -14,6 +14,8 @@ const (
 	ProductName = "HomeAss-Wol"
 )
 
+var mqttClient mqtt.Client
+
 func main() {
 	cfg := loadEnv()
 
@@ -25,11 +27,11 @@ func main() {
 		SetUsername(cfg.MQTT_USERNAME).
 		SetPassword(cfg.MQTT_PASSWORD).
 		SetAutoReconnect(true).
-		SetMaxReconnectInterval(30 * time.Second).
-		SetDefaultPublishHandler(messageHandler)
+		SetMaxReconnectInterval(30 * time.Second)
+		//		SetDefaultPublishHandler(messageHandler)
 
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	mqttClient = mqtt.NewClient(opts)
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalf("MQTT connection failed: %v", token.Error())
 	}
 
@@ -40,8 +42,8 @@ func main() {
 	for _, servercfg := range serverscfg.Servers {
 		go func(cfg Server) {
 			s := NewBasicServer(cfg)
-			s.Discovery(client)
-			s.Check(client)
+			s.Discovery()
+			s.Check()
 			resultChan <- s
 		}(servercfg)
 	}
@@ -57,7 +59,7 @@ func main() {
 
 	for range ticker.C {
 		for _, s := range servers {
-			s.Check(client)
+			s.Check()
 		}
 	}
 
@@ -65,10 +67,6 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 
-	client.Disconnect(250)
+	mqttClient.Disconnect(250)
 	log.Println("Disconnected from MQTT broker")
-}
-
-var messageHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("Received message on topic %s: %s\n", msg.Topic(), string(msg.Payload()))
 }
