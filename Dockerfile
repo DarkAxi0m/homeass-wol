@@ -14,7 +14,7 @@ RUN apk --no-cache --virtual add \
     lua5.4 lua5.4-libs lua5.4-socket \
     iputils \
     busybox-extras \
- && ln -s /usr/bin/lua5.4 /usr/bin/lua \
+    && ln -s /usr/bin/lua5.4 /usr/bin/lua \
     && rm -rf /var/cache/apk/* /usr/share/doc /usr/share/man /usr/share/locale
 
 WORKDIR /app
