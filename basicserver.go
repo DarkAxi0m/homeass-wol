@@ -12,6 +12,19 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+var (
+	runLuaScriptFunc    = RunLuaScript
+	sendMagicPacketFunc = SendMagicPacket
+	runSSHCommandFunc   = RunSSHCommand
+	powerIPMIFunc       = PowerIpmi
+	publishMQTTFunc     = func(topic string, payload any, retained bool) {
+		if mqttClient == nil {
+			return
+		}
+		mqttClient.Publish(topic, 0, retained, payload)
+	}
+)
+
 type BasicServer struct {
 	Name     string
 	Model    string
@@ -65,10 +78,18 @@ func (s *BasicServer) SetState(to bool) {
 	}
 
 	log.Printf("Check for %s: %s \n", s.Name, stateStr)
-	mqttClient.Publish(s.TopicPowerState, 0, false, stateStr)
+	publishMQTT(s.TopicPowerState, stateStr, false)
 	if to {
-		mqttClient.Publish(s.TopicLastSeenState, 0, false, time.Now().Format(time.RFC3339))
+		publishMQTT(s.TopicLastSeenState, time.Now().Format(time.RFC3339), false)
 	}
+}
+
+func (s *BasicServer) PublishUnknownState() {
+	publishMQTT(s.TopicPowerState, "UNKNOWN", false)
+}
+
+func publishMQTT(topic string, payload any, retained bool) {
+	publishMQTTFunc(topic, payload, retained)
 }
 
 func (s *BasicServer) Discovery() {
@@ -78,7 +99,7 @@ func (s *BasicServer) Discovery() {
 			log.Fatalf("JSON marshaling failed: %v", err)
 		}
 
-		mqttClient.Publish(topic, 0, true, jsonPayload)
+		publishMQTT(topic, jsonPayload, true)
 
 		log.Println(topic)
 	}
@@ -111,11 +132,13 @@ func (s *BasicServer) Discovery() {
 		UniqueID:     s.UniqueID + "_stop",
 		Device:       deviceInfo,
 	})
-	mqttClient.Subscribe(s.TopicStopCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("MSG: Stop Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		mqttClient.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
-		s.Stop()
-	})
+	if mqttClient != nil {
+		mqttClient.Subscribe(s.TopicStopCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
+			log.Printf("MSG: Stop Server %s: %s\n", s.UniqueID, string(msg.Payload()))
+			s.PublishUnknownState()
+			s.Stop()
+		})
+	}
 
 	send(s.TopicStartConfig, DeviceConfig{
 		Name:         "Start",
@@ -123,72 +146,111 @@ func (s *BasicServer) Discovery() {
 		UniqueID:     s.UniqueID + "_start",
 		Device:       deviceInfo,
 	})
-	mqttClient.Subscribe(s.TopicStartCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("MSG: Start Server %s: %s\n", s.UniqueID, string(msg.Payload()))
-		mqttClient.Publish(s.TopicPowerState, 0, false, "UNKNOWN")
-		s.Start()
-	})
+	if mqttClient != nil {
+		mqttClient.Subscribe(s.TopicStartCommand, 0, func(client mqtt.Client, msg mqtt.Message) {
+			log.Printf("MSG: Start Server %s: %s\n", s.UniqueID, string(msg.Payload()))
+			s.PublishUnknownState()
+			s.Start()
+		})
+	}
 }
 
-func luaCheck(name string, action Action) (bool, bool) {
-	if result, found := RunLuaScript(action.Type, action.Params); found {
-		log.Printf("[LUA] %s %s (%s): %s", action.Type, name, action.Params, result)
-		return strings.TrimSpace(result) == "success", true
+func luaCheck(name string, action Action) (bool, bool, error) {
+	if result, found, err := runLuaScriptFunc(action.Type, action.Params); found {
+		if err != nil {
+			return false, true, fmt.Errorf("[LUA] %s %s: %w", action.Type, name, err)
+		}
+		log.Printf("[LUA] %s %s (%v): %s", action.Type, name, action.Params, result)
+		return strings.TrimSpace(result) == "success", true, nil
 	}
-	return false, false
+	return false, false, nil
 }
 
 func (s *BasicServer) Check() {
-	if result, found := luaCheck(s.Name, s.cfg.Check); found {
+	if result, found, err := luaCheck(s.Name, s.cfg.Check); err != nil {
+		log.Printf("Check failed for %s: %v", s.Name, err)
+		s.PublishUnknownState()
+	} else if found {
 		s.SetState(result)
 	} else {
-		fmt.Printf("Unknown Check: %s, %s.\n", s.Name, s.cfg.Check.Type)
+		log.Printf("Unsupported check type for %s: %s", s.Name, s.cfg.Check.Type)
 	}
 }
 
 func (s *BasicServer) Start() bool {
-	if result, found := luaCheck(s.Name, s.cfg.Start); found {
+	if result, found, err := luaCheck(s.Name, s.cfg.Start); err != nil {
+		log.Printf("Start failed for %s: %v", s.Name, err)
+		return false
+	} else if found {
 		return result
 	}
 
 	switch t := s.cfg.Start.Type; t {
 	case "wol":
-		mac := s.cfg.Start.Params[0]
-		if err := SendMagicPacket(mac); err != nil {
-			fmt.Println("Error:", err, mac)
-		} else {
-			fmt.Println("Magic packet sent!", mac)
+		if len(s.cfg.Start.Params) < 1 {
+			log.Printf("Start failed for %s: wol requires 1 param", s.Name)
+			return false
 		}
+		mac := s.cfg.Start.Params[0]
+		if err := sendMagicPacketFunc(mac); err != nil {
+			log.Printf("WOL failed for %s: %v", s.Name, err)
+			return false
+		}
+		log.Printf("Magic packet sent for %s: %s", s.Name, mac)
+		return true
 	case "ipmi":
 		params := s.cfg.Start.Params
-		return PowerIpmi(params[0], params[1], params[2], "ON")
+		if len(params) < 3 {
+			log.Printf("Start failed for %s: ipmi requires 3 params", s.Name)
+			return false
+		}
+		if err := powerIPMIFunc(params[0], params[1], params[2], "ON"); err != nil {
+			log.Printf("IPMI start failed for %s: %v", s.Name, err)
+			return false
+		}
+		return true
 
 	default:
-		fmt.Printf("Unknown start: %s.\n", t)
+		log.Printf("Unsupported start type for %s: %s", s.Name, t)
 	}
 	return false
 }
 
 func (s *BasicServer) Stop() bool {
-	if result, found := luaCheck(s.Name, s.cfg.Stop); found {
+	if result, found, err := luaCheck(s.Name, s.cfg.Stop); err != nil {
+		log.Printf("Stop failed for %s: %v", s.Name, err)
+		return false
+	} else if found {
 		return result
 	}
 
 	switch t := s.cfg.Stop.Type; t {
 	case "ssh":
 		params := s.cfg.Stop.Params
-		error := RunSSHCommand(params[0], params[1])
+		if len(params) < 2 {
+			log.Printf("Stop failed for %s: ssh requires 2 params", s.Name)
+			return false
+		}
+		error := runSSHCommandFunc(params[0], params[1])
 		if error != nil {
-			fmt.Println("SSH Run error", error)
+			log.Printf("SSH stop failed for %s: %v", s.Name, error)
 			return false
 		}
 		return true
 	case "ipmi":
 		params := s.cfg.Stop.Params
-		return PowerIpmi(params[0], params[1], params[2], "OFF")
+		if len(params) < 3 {
+			log.Printf("Stop failed for %s: ipmi requires 3 params", s.Name)
+			return false
+		}
+		if err := powerIPMIFunc(params[0], params[1], params[2], "OFF"); err != nil {
+			log.Printf("IPMI stop failed for %s: %v", s.Name, err)
+			return false
+		}
+		return true
 
 	default:
-		fmt.Printf("Unknown Stop: %s.\n", t)
+		log.Printf("Unsupported stop type for %s: %s", s.Name, t)
 	}
 	return false
 }

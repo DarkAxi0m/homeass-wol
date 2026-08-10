@@ -18,8 +18,12 @@ var mqttClient mqtt.Client
 
 func main() {
 	cfg := loadEnv()
+	cfg.CONFIG_FILE = ResolveConfigPath(cfg.CONFIG_FILE)
 
 	serverscfg := LoadServers(cfg.CONFIG_FILE)
+	if err := ValidateServers(serverscfg); err != nil {
+		log.Fatalf("Config validation failed: %v", err)
+	}
 
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.MQTT_BROKER).
@@ -57,16 +61,25 @@ func main() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		for _, s := range servers {
-			s.Check()
-		}
-	}
-
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
+	defer signal.Stop(sig)
+
+	runMainLoop(ticker.C, sig, servers)
 
 	mqttClient.Disconnect(250)
 	log.Println("Disconnected from MQTT broker")
+}
+
+func runMainLoop(ticks <-chan time.Time, sig <-chan os.Signal, servers []*BasicServer) {
+	for {
+		select {
+		case <-ticks:
+			for _, s := range servers {
+				s.Check()
+			}
+		case <-sig:
+			return
+		}
+	}
 }

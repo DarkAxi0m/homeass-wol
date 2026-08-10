@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os/exec"
 	"time"
@@ -23,18 +22,19 @@ func RunSSHCommand(host, command string) error {
 	return nil
 }
 
-func PowerIpmi(host string, username string, password string, state string) bool {
+func PowerIpmi(host string, username string, password string, state string) error {
 	port := 623
 	client, err := ipmi.NewClient(host, port, username, password)
 	if err != nil {
-		log.Fatalf("Error connecting to BMC: %v", err)
+		return fmt.Errorf("create IPMI client for %s: %w", host, err)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	// Connect will create an authenticated session for you.
 	if err := client.Connect(ctx); err != nil {
-		panic(err)
+		return fmt.Errorf("connect IPMI client for %s: %w", host, err)
 	}
 
 	cont := ipmi.ChassisControlPowerUp
@@ -43,9 +43,9 @@ func PowerIpmi(host string, username string, password string, state string) bool
 	}
 
 	if _, err := client.ChassisControl(ctx, cont); err != nil {
-		panic(err)
+		return fmt.Errorf("set IPMI power %s for %s: %w", state, host, err)
 	}
-	return true
+	return nil
 }
 
 func SendMagicPacket(macAddr string) error {
